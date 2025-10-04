@@ -20,63 +20,103 @@ class ReceiptView(QDialog):
         self.receipt_text = QTextEdit()
         self.receipt_text.setReadOnly(True)
         
-        # Generate receipt HTML
-        receipt_html = f"""
-        <div style='font-family: Arial; width: 100%;'>
-            <h2 style='text-align: center;'>SALES RECEIPT</h2>
-            <p style='text-align: center;'>{QDateTime.currentDateTime().toString('yyyy-MM-dd hh:mm:ss')}</p>
-            <hr>
-            <table width='100%' style='border-collapse: collapse;'>
+        # Helper to format currency like: 53 000
+        def fmt(n):
+            try:
+                val = int(round(float(n)))
+            except Exception:
+                val = 0
+            return f"{val:,}".replace(",", " ")
+
+        # Receipt number fallback
+        receipt_no = self.payment_data.get('receipt_no') or self.payment_data.get('id') or 0
+        receipt_no = str(receipt_no).zfill(6)
+
+        # Date/time
+        dt = QDateTime.currentDateTime()
+        if isinstance(self.payment_data.get('created_at'), str):
+            # try to use provided created_at if present
+            try:
+                # expect ISO-like input
+                dt = QDateTime.fromString(self.payment_data.get('created_at'), Qt.ISODate)
+                if not dt.isValid():
+                    dt = QDateTime.currentDateTime()
+            except Exception:
+                dt = QDateTime.currentDateTime()
+
+        date_str = dt.toString('dd-MM-yyyy')
+        time_str = dt.toString('HH:mm:ss')
+
+        # Build items rows
+        items_html = ''
+        for item in self.payment_data.get('items', []):
+            name = item.get('name', '')
+            qty = int(item.get('quantity', 0))
+            price = int(round(float(item.get('price', 0))))
+            subtotal = qty * price
+            items_html += f"""
                 <tr>
-                    <th style='text-align: left;'>Item</th>
-                    <th style='text-align: right;'>Qty</th>
-                    <th style='text-align: right;'>Price</th>
-                    <th style='text-align: right;'>Subtotal</th>
-                </tr>
-        """
-        
-        # Add items
-        for item in self.payment_data['items']:
-            receipt_html += f"""
-                <tr>
-                    <td>{item['name']}</td>
-                    <td style='text-align: right;'>{item['quantity']}</td>
-                    <td style='text-align: right;'>${item['price']:.2f}</td>
-                    <td style='text-align: right;'>${item['subtotal']:.2f}</td>
+                    <td style='text-align:left; padding:4px 0;'>{name}</td>
+                    <td style='text-align:right; padding:4px 0;'>{qty}</td>
+                    <td style='text-align:right; padding:4px 0;'>{fmt(price)}</td>
+                    <td style='text-align:right; padding:4px 0;'>{fmt(subtotal)}</td>
                 </tr>
             """
-            
-        # Add totals
-        receipt_html += f"""
+
+        subtotal_val = int(round(float(self.payment_data.get('subtotal', 0))))
+        discount_val = int(round(float(self.payment_data.get('discount', 0))))
+        total_val = int(round(float(self.payment_data.get('total', 0))))
+        paid_val = int(round(float(self.payment_data.get('paid_amount', 0))))
+        balance_val = paid_val - total_val
+
+        receipt_html = f"""
+        <div style='font-family: Arial; width: 100%; font-size:12px;'>
+            <div style='text-align:center; font-weight:bold; font-size:14px;'>Xo'jalik mollari do'koni</div>
+            <div style='text-align:center;'>Nurobod tumani, Saroy mahalla</div>
+            <div style='text-align:center;'>Tel: +998 90 123 45 67</div>
+            <hr>
+            <div style='font-weight:bold;'>Chek tafsilotlari</div>
+            <div>To'lov tafsilotlari</div>
+            <div>Sana: {date_str} &nbsp; Vaqt: {time_str}</div>
+            <br>
+            <table width='100%'>
+                <tr>
+                    <th style='text-align:left;'>Mahsulot nomi</th>
+                    <th style='text-align:right;'>Soni</th>
+                    <th style='text-align:right;'>Narxi</th>
+                    <th style='text-align:right;'>Jami</th>
+                </tr>
+                {items_html}
             </table>
             <hr>
             <table width='100%'>
                 <tr>
-                    <td style='text-align: right;'>Subtotal:</td>
-                    <td style='text-align: right; width: 100px;'>${self.payment_data['subtotal']:.2f}</td>
+                    <td style='text-align:right;'>Oraliq summa:</td>
+                    <td style='text-align:right; width:150px;'>{fmt(subtotal_val)}</td>
                 </tr>
                 <tr>
-                    <td style='text-align: right;'>Discount:</td>
-                    <td style='text-align: right;'>${self.payment_data['discount']:.2f}</td>
+                    <td style='text-align:right;'>Chegirma:</td>
+                    <td style='text-align:right;'>{fmt(discount_val)}</td>
                 </tr>
                 <tr>
-                    <td style='text-align: right;'><b>Total:</b></td>
-                    <td style='text-align: right;'><b>${self.payment_data['total']:.2f}</b></td>
+                    <td style='text-align:right; font-weight:bold;'>Umumiy summa:</td>
+                    <td style='text-align:right; font-weight:bold;'>{fmt(total_val)}</td>
                 </tr>
                 <tr>
-                    <td style='text-align: right;'>Paid Amount:</td>
-                    <td style='text-align: right;'>${self.payment_data['paid_amount']:.2f}</td>
+                    <td style='text-align:right;'>To'langan summa:</td>
+                    <td style='text-align:right;'>{fmt(paid_val)}</td>
                 </tr>
                 <tr>
-                    <td style='text-align: right;'>Balance:</td>
-                    <td style='text-align: right;'>${self.payment_data['balance']:.2f}</td>
+                    <td style='text-align:right;'>Qoldiq (naqd qaytim):</td>
+                    <td style='text-align:right;'>{fmt(balance_val)}</td>
                 </tr>
             </table>
-            <hr>
-            <p style='text-align: center;'>Thank you for your purchase!</p>
+            <br>
+            <div style='text-align:center;'>Rahmat! Yana keling!</div>
+            <div style='text-align:center;'>Chek № {receipt_no}</div>
         </div>
         """
-        
+
         self.receipt_text.setHtml(receipt_html)
         layout.addWidget(self.receipt_text)
         

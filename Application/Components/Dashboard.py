@@ -10,6 +10,7 @@ from datetime import datetime
 from Application.Components.Stock.View import StockView
 from Application.Components.Sales.View import SalesView
 from Application.Components.Reports.View import ReportsView
+from Application.i18n import format_sum
 
 
 class DashboardView(QMainWindow):
@@ -103,7 +104,7 @@ class DashboardView(QMainWindow):
         self.SalesBox = QGroupBox("Monthly Sales")
         self.SalesBoxLayout = QHBoxLayout(self.SalesBox)
         self.SalesBox.setLayout(self.SalesBoxLayout)
-        self.SalesBoxData = QLabel(f"${total_sales:,.2f}")
+        self.SalesBoxData = QLabel(format_sum(total_sales))
         self.SalesBoxData.setStyleSheet("font: 75 35pt; color: black;")
         self.SalesBoxData.setMargin(15)
         self.SalesBoxData.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
@@ -113,7 +114,7 @@ class DashboardView(QMainWindow):
         self.ProfitBox = QGroupBox("Monthly Profit")
         self.ProfitBoxLayout = QHBoxLayout(self.ProfitBox)
         self.ProfitBox.setLayout(self.ProfitBoxLayout)
-        self.ProfitBoxData = QLabel(f"${total_profit:,.2f}")
+        self.ProfitBoxData = QLabel(format_sum(total_profit))
         self.ProfitBoxData.setStyleSheet("font: 75 35pt; color: black;")
         self.ProfitBoxData.setMargin(15)
         self.ProfitBoxData.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
@@ -134,21 +135,20 @@ class DashboardView(QMainWindow):
         self.widgetContainerLayout.addWidget(self.ProfitBox)
         self.widgetContainerLayout.addWidget(self.ProductsBox)
 
-        self.lowStockGroup = QGroupBox("Low Stock Alert (Products with Qty ≤ 5)")
+        self.lowStockGroup = QGroupBox("Low Stock Alert (Products with Qty ≤ Reorder Level)")
         self.lowStockLayout = QVBoxLayout()
 
-         # Create table for low stock items
+        # Create table for low stock items
         self.lowStockTable = QTableView()
         self.lowStockTable.horizontalHeader().setStretchLastSection(True)
         self.lowStockTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.lowStockTable.setEditTriggers(QTableView.NoEditTriggers)
 
-
         # Create and set up the model
         self.modelLowStock = QSqlQueryModel()
         self.update_low_stock_table()
         self.lowStockTable.setModel(self.modelLowStock)
-        
+
         # Add to layout
         self.lowStockLayout.addWidget(self.lowStockTable)
         self.lowStockGroup.setLayout(self.lowStockLayout)
@@ -183,7 +183,7 @@ class DashboardView(QMainWindow):
                 qty as 'Current Quantity',
                 sell_price as 'Selling Price'
             FROM products 
-            WHERE qty <= 5
+            WHERE qty <= COALESCE(NULLIF(reorder_level, ''), 5)
             ORDER BY qty ASC
         """
         self.modelLowStock.setQuery(query)
@@ -191,8 +191,8 @@ class DashboardView(QMainWindow):
 
     def refresh_dashboard(self):
         total_sales, total_profit, total_products = self.get_current_month_stats()
-        self.SalesBoxData.setText(f"${total_sales:,.2f}")
-        self.ProfitBoxData.setText(f"${total_profit:,.2f}")
+        self.SalesBoxData.setText(format_sum(total_sales))
+        self.ProfitBoxData.setText(format_sum(total_profit))
         self.ProductsBoxData.setText(str(total_products))
         
         # Refresh low stock table

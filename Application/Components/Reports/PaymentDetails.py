@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QPushButton, QDateEdit, QDialog, QTextEdit)
 import json
+from Application.i18n import format_sum
 
 class PaymentDetails(QDialog):
     def __init__(self, payment_data, parent=None):
@@ -42,8 +43,8 @@ class PaymentDetails(QDialog):
                 <tr>
                     <td>{item['name']}</td>
                     <td style='text-align: right;'>{item['quantity']}</td>
-                    <td style='text-align: right;'>${item['price']:.2f}</td>
-                    <td style='text-align: right;'>${item['subtotal']:.2f}</td>
+                    <td style='text-align: right;'>{format_sum(item['price'])}</td>
+                    <td style='text-align: right;'>{format_sum(item['subtotal'])}</td>
                 </tr>
             """
             
@@ -54,23 +55,23 @@ class PaymentDetails(QDialog):
             <table width='100%'>
                 <tr>
                     <td style='text-align: right;'>Subtotal:</td>
-                    <td style='text-align: right; width: 100px;'>${payment_info['subtotal']:.2f}</td>
+                    <td style='text-align: right; width: 100px;'>{format_sum(payment_info['subtotal'])}</td>
                 </tr>
                 <tr>
                     <td style='text-align: right;'>Discount:</td>
-                    <td style='text-align: right;'>${payment_info['discount']:.2f}</td>
+                    <td style='text-align: right;'>{format_sum(payment_info['discount'])}</td>
                 </tr>
                 <tr>
                     <td style='text-align: right;'><b>Total:</b></td>
-                    <td style='text-align: right;'><b>${payment_info['total']:.2f}</b></td>
+                    <td style='text-align: right;'><b>{format_sum(payment_info['total'])}</b></td>
                 </tr>
                 <tr>
                     <td style='text-align: right;'>Paid Amount:</td>
-                    <td style='text-align: right;'>${payment_info['paid_amount']:.2f}</td>
+                    <td style='text-align: right;'>{format_sum(payment_info['paid_amount'])}</td>
                 </tr>
                 <tr>
                     <td style='text-align: right;'>Balance:</td>
-                    <td style='text-align: right;'>${payment_info['balance']:.2f}</td>
+                    <td style='text-align: right;'>{format_sum(payment_info['balance'])}</td>
                 </tr>
             </table>
         </div>

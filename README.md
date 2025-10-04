@@ -73,3 +73,22 @@ python run.py
 
 > Username : john  
 > Password : 1234  
+
+## Quick Start (one-click / single command)
+
+If you want to run the app without opening the code in an editor, use the provided launcher scripts.
+
+- Windows (double-click): `run_app.bat` — this will activate `venv` if present and run `run.py`.
+- Git Bash / WSL / macOS / Linux: `./run_app.sh` — make it executable with `chmod +x run_app.sh` and run from the project root.
+
+Example (Git Bash / WSL):
+
+```bash
+./run_app.sh
+```
+
+If you prefer PowerShell, run:
+
+```powershell
+.\run_app.bat
+```

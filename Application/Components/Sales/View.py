@@ -9,6 +9,7 @@ from PyQt5.QtSql import QSqlDatabase, QSqlQuery
 from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
 import json
 from Application.Components.Sales.Receipt import ReceiptView
+from Application.i18n import format_sum, parse_sum, t
 
 class UIContainer(QObject):
     def setupUi(self, Form):
@@ -24,10 +25,10 @@ class UIContainer(QObject):
         
         # Search Bar
         self.searchBar = QHBoxLayout()
-        self.addButton = QPushButton("Add +")
+        self.addButton = QPushButton(t('Add +'))
         self.skuSearch = QLineEdit()
-        self.skuSearch.setPlaceholderText("SKU")
-        self.searchButton = QPushButton("Search")
+        self.skuSearch.setPlaceholderText(t('Sku'))
+        self.searchButton = QPushButton(t('Search'))
         for widget in [self.addButton, self.skuSearch, self.searchButton]:
             self.searchBar.addWidget(widget)
         
@@ -44,7 +45,7 @@ class UIContainer(QObject):
         
         # Cart Header
         self.cartHeader = QHBoxLayout()
-        for label in ['Item', 'Qty', 'Price']:
+        for label in [t('Item'), t('Qty'), t('Price')]:
             lbl = QLabel(label)
             lbl.setStyleSheet("font: 75 12pt; color: white;")
             self.cartHeader.addWidget(lbl)
@@ -58,11 +59,12 @@ class UIContainer(QObject):
         
         # First row
         self.totalRow1 = QHBoxLayout()
-        self.subTotalLabel = QLabel("Sub Total : ")
+        self.subTotalLabel = QLabel(t('Sub Total : '))
         self.subTotalValue = QLabel("50")
-        self.discountLabel = QLabel("Discount : ")
+        self.discountLabel = QLabel(t('Discount : '))
         self.discountValue = QSpinBox()
-        self.totalLabel = QLabel("Total Payment : ")
+        self.discountValue.setMaximum(100000)
+        self.totalLabel = QLabel(t('Total Payment : '))
         self.totalValue = QLabel("50")
         
         for widget in [self.subTotalLabel, self.subTotalValue, 
@@ -72,13 +74,13 @@ class UIContainer(QObject):
             
         # Second row
         self.totalRow2 = QHBoxLayout()
-        self.paidLabel = QLabel("Paid : ")
+        self.paidLabel = QLabel(t('Paid : '))
         self.paidInput = QLineEdit()
         self.paidInput.textChanged.connect(self.calculate_balance)
-        self.balanceLabel = QLabel("Balance : ")
+        self.balanceLabel = QLabel(t('Balance : '))
         self.balanceInput = QLineEdit()
         self.balanceInput.setReadOnly(True)
-        self.payButton = QPushButton("Pay")
+        self.payButton = QPushButton(t('Pay'))
         self.payButton.setStyleSheet("background-color: #4CAF50; color: white; padding: 10px;")
         
         for widget in [self.paidLabel, self.paidInput,
@@ -291,7 +293,7 @@ class SalesView(QMainWindow):
             qtyEdit.editingFinished.connect(lambda sku=sku, edit=qtyEdit: self.update_item_quantity(sku, edit))
             
             row.append(QStandardItem(""))  # Empty item for qty column
-            row.append(QStandardItem(f"${item['price']:.2f}"))
+            row.append(QStandardItem(format_sum(item['price'])))
             
             deleteBtn = QPushButton("×")
             deleteBtn.clicked.connect(lambda checked, s=sku: self.remove_item(s))
@@ -327,10 +329,10 @@ class SalesView(QMainWindow):
             qtyEdit.setText(str(self.cart_items[sku]['qty']))
 
     def calculate_total(self):
-        subtotal = float(self.ui.sub_total.text().replace('$', ''))
+        subtotal = parse_sum(self.ui.sub_total.text())
         discount = float(self.ui.discount.text() or 0)
         final_total = subtotal - discount
-        self.ui.total_payment.setText(f"${final_total:.2f}")
+        self.ui.total_payment.setText(format_sum(final_total))
 
 
     def update_totals(self):

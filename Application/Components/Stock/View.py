@@ -1,12 +1,17 @@
 import sys
 from PyQt5.QtSql import QSqlDatabase, QSqlQuery, QSqlQueryModel
 import PyQt5.QtCore as QtCore
+from PyQt5.QtCore import Qt
 import PyQt5.QtGui as QtGui
 from PyQt5.QtWidgets import *
 import re
 
 from Application.Components.Stock.CustomHeader import CustomHeader
 from Application.Components.Stock.FilterModel import FilterModel
+from Application.i18n import t
+from Application.printing import print_sku_label
+from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
+from PyQt5.QtGui import QTextDocument
 
 class FilterDialog(QDialog):
     def __init__(self, parent):
@@ -14,10 +19,10 @@ class FilterDialog(QDialog):
         self.init_elements()
 
     def init_elements(self):
-        cancelButton = QPushButton("Cancel")
+        cancelButton = QPushButton(t("Cancel"))
         cancelButton.clicked.connect(self.reject)
 
-        okButton = QPushButton("OK")
+        okButton = QPushButton(t("OK"))
         okButton.setDefault(True)
         okButton.clicked.connect(self.accept)
 
@@ -35,7 +40,7 @@ class FilterDialog(QDialog):
 
         self.setLayout(vbox)
 
-        self.setWindowTitle('Filter Column')
+        self.setWindowTitle(t('Filter Column'))
     
 class DelegateEdit(QItemDelegate):
         def __init__(self, owner):
@@ -56,7 +61,7 @@ class DelegateEdit(QItemDelegate):
             value = index.data(QtCore.Qt.DisplayRole)
             style = QApplication.style()
             button = QStyleOptionButton()
-            button.text = "Edit"
+            button.text = t("Edit")
             button.palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(QtCore.Qt.black));
 
             x = option.rect.left() + 10
@@ -97,13 +102,13 @@ class DelegateEdit(QItemDelegate):
             purchaseIndex = query.record().indexOf("purchase_price")
 
             self.updateUI = QDialog()
-            self.updateUI.setWindowTitle("Update Product")
+            self.updateUI.setWindowTitle(t("Update Product"))
             self.updateUI.setObjectName("Update Product")
             self.updateUI.resize(250, 230)
             self.updateUI.setWindowFlags(self.updateUI.windowFlags() & QtCore.Qt.CustomizeWindowHint)
             self.updateUI.setWindowFlags(self.updateUI.windowFlags() & ~QtCore.Qt.WindowMinMaxButtonsHint)
 
-            self.labelName = QLabel("Name:", self.updateUI)
+            self.labelName = QLabel(t("Name:"), self.updateUI)
             self.labelName.move(20, 20)
             self.inputName = QLineEdit(self.updateUI)
             self.inputreg_ex = QtCore.QRegExp("^[a-zA-Z ]*$")
@@ -111,7 +116,7 @@ class DelegateEdit(QItemDelegate):
             self.inputName.setText(str(query.value(nameIndex)))
             self.inputName.move(100, 15)
 
-            self.labelSku = QLabel("Sku:", self.updateUI)
+            self.labelSku = QLabel(t("Sku:"), self.updateUI)
             self.labelSku.move(20, 50)
             self.inputSku = QLineEdit(self.updateUI)
             self.skureg_ex = QtCore.QRegExp("^[0-9]*$")
@@ -120,7 +125,7 @@ class DelegateEdit(QItemDelegate):
             self.inputSku.setText(str(query.value(skuIndex)))
             self.inputSku.move(100, 45)
 
-            self.labelQty = QLabel("Quantity:", self.updateUI)
+            self.labelQty = QLabel(t("Quantity:"), self.updateUI)
             self.labelQty.move(20, 80)
             self.inputQty = QLineEdit(self.updateUI)
             self.qtyreg_ex = QtCore.QRegExp("^[0-9]*$")
@@ -129,7 +134,7 @@ class DelegateEdit(QItemDelegate):
             self.inputQty.setText(str(query.value(qtyIndex)))
             self.inputQty.move(100, 75)
 
-            self.labelSelling = QLabel("Selling:", self.updateUI)
+            self.labelSelling = QLabel(t("Selling:"), self.updateUI)
             self.labelSelling.move(20, 110)
             self.inputSelling = QLineEdit(self.updateUI)
             self.sellingreg_ex = QtCore.QRegExp("^[0-9]*$")
@@ -138,7 +143,7 @@ class DelegateEdit(QItemDelegate):
             self.inputSelling.setText(str(query.value(sellIndex)))
             self.inputSelling.move(100, 105)
 
-            self.labelPurchase = QLabel("Purchase:", self.updateUI)
+            self.labelPurchase = QLabel(t("Purchase:"), self.updateUI)
             self.labelPurchase.move(20, 140)
             self.inputPurchase = QLineEdit(self.updateUI)
             self.purchasereg_ex = QtCore.QRegExp("^[0-9]*$")
@@ -146,6 +151,20 @@ class DelegateEdit(QItemDelegate):
             self.inputPurchase.setValidator(self.purchase_validator)
             self.inputPurchase.setText(str(query.value(purchaseIndex)))
             self.inputPurchase.move(100, 135)
+
+            # Reorder level
+            self.labelReorder = QLabel(t("Reorder level:"), self.updateUI)
+            self.labelReorder.move(20, 170)
+            self.inputReorder = QLineEdit(self.updateUI)
+            self.inputReorder.setValidator(self.qty_validator)
+            # if the product has a reorder_level column (value index may be 7 or beyond), try to set it
+            try:
+                reorderIndex = query.record().indexOf("reorder_level")
+                if reorderIndex != -1:
+                    self.inputReorder.setText(str(query.value(reorderIndex)))
+            except Exception:
+                pass
+            self.inputReorder.move(100, 165)
 
             self.category = QComboBox(self.updateUI)
             categories = self.parent().load_categories()
@@ -156,14 +175,14 @@ class DelegateEdit(QItemDelegate):
                 if cat_id == selected_category_id:
                     self.category.setCurrentText(cat_name)
             
-            self.labelCategory = QLabel("Category:", self.updateUI)
-            self.labelCategory.move(20, 170)
-            self.category.move(100, 165)
+            self.labelCategory = QLabel(t("Category:"), self.updateUI)
+            self.labelCategory.move(20, 200)
+            self.category.move(100, 195)
 
-            self.updateButton = QPushButton("Save",self.updateUI)
+            self.updateButton = QPushButton(t("Save"),self.updateUI)
             self.updateButton.setObjectName(str(query.value(idIndex)))
             self.updateButton.clicked.connect(self.onButtonUpdate)
-            self.updateButton.move(100, 200)
+            self.updateButton.move(100, 230)
             self.updateUI.show()
 
 
@@ -174,6 +193,8 @@ class DelegateEdit(QItemDelegate):
             qty      = self.inputQty.text()
             selling  = self.inputSelling.text()
             purchase = self.inputPurchase.text()
+            reorder  = getattr(self, 'inputReorder', None)
+            reorder_val = reorder.text() if reorder is not None else None
             category_id = self.category.currentData()
             MessageBox = QMessageBox()
             if name == "":
@@ -189,18 +210,25 @@ class DelegateEdit(QItemDelegate):
             else:
                 try:
                     query = QSqlQuery()
-                    query.prepare("UPDATE products SET name=:name, sku=:sku, qty=:qty, sell_price=:sell_price, purchase_price=:purchase_price, category_id=:category_id  WHERE id=:id");
+                    # include reorder_level if available
+                    if reorder_val is not None:
+                        query.prepare("UPDATE products SET name=:name, sku=:sku, qty=:qty, sell_price=:sell_price, purchase_price=:purchase_price, reorder_level=:reorder_level, category_id=:category_id  WHERE id=:id");
+                        query.bindValue(":reorder_level", reorder_val)
+                    else:
+                        query.prepare("UPDATE products SET name=:name, sku=:sku, qty=:qty, sell_price=:sell_price, purchase_price=:purchase_price, category_id=:category_id  WHERE id=:id");
                     query.bindValue(":name", name)
                     query.bindValue(":sku", sku)
                     query.bindValue(":qty", qty)
                     query.bindValue(":sell_price", selling)
                     query.bindValue(":purchase_price", purchase)
+                    if reorder_val is not None:
+                        query.bindValue(":reorder_level", reorder_val)
                     query.bindValue(":category_id", category_id)
                     query.bindValue(":id", self.id)
                     query.exec_()
                     MessageBox.setIcon(QMessageBox.Information)
-                    MessageBox.setText("Product has been updated successfully!")
-                    MessageBox.setWindowTitle("Success")
+                    MessageBox.setText(t("Product has been updated successfully!"))
+                    MessageBox.setWindowTitle(t("Success"))
                     MessageBox.setStandardButtons(QMessageBox.Ok)
                     MessageBox.exec()
                     self.parent().initializedModel()
@@ -208,8 +236,8 @@ class DelegateEdit(QItemDelegate):
                 except Exception as e:
                     print("Oops!", e.__class__, "occurred.")
                     MessageBox.setIcon(QMessageBox.Warning)
-                    MessageBox.setText("Something went wrong, please try again later")
-                    MessageBox.setWindowTitle("Error")
+                    MessageBox.setText(t("Something went wrong, please try again later"))
+                    MessageBox.setWindowTitle(t("Error"))
                     MessageBox.setStandardButtons(QMessageBox.Ok)
                     MessageBox.exec()
 
@@ -245,7 +273,7 @@ class DelegateDelete(QItemDelegate):
             value = index.data(QtCore.Qt.DisplayRole)
             style = QApplication.style()
             button = QStyleOptionButton()
-            button.text = "Delete"
+            button.text = t("Delete")
             button.palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(QtCore.Qt.red));
             
 
@@ -270,8 +298,8 @@ class DelegateDelete(QItemDelegate):
         def onButtonDelete(self, id):             
            MessageBox = QMessageBox()
            MessageBox.setIcon(QMessageBox.Information)
-           MessageBox.setText("Are you sure you want to delete?")
-           MessageBox.setWindowTitle("Warning")
+           MessageBox.setText(t("Are you sure you want to delete?"))
+           MessageBox.setWindowTitle(t("Warning"))
            MessageBox.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
            returnValue = MessageBox.exec()
            if returnValue == QMessageBox.Yes:
@@ -281,15 +309,15 @@ class DelegateDelete(QItemDelegate):
                     query.bindValue(":id", id)
                     query.exec_()
                     MessageBox.setIcon(QMessageBox.Information)
-                    MessageBox.setText("Product has been deleted successfully!")
-                    MessageBox.setWindowTitle("Success")
+                    MessageBox.setText(t("Product has been deleted successfully!"))
+                    MessageBox.setWindowTitle(t("Success"))
                     MessageBox.setStandardButtons(QMessageBox.Ok)
                     MessageBox.exec()
                     self.parent().initializedModel()
                 except Exception as e:
                     MessageBox.setIcon(QMessageBox.Warning)
-                    MessageBox.setText("Something went wrong, please try again later")
-                    MessageBox.setWindowTitle("Error")
+                    MessageBox.setText(t("Something went wrong, please try again later"))
+                    MessageBox.setWindowTitle(t("Error"))
                     MessageBox.setStandardButtons(QMessageBox.Ok)
                     MessageBox.exec()
 
@@ -316,6 +344,53 @@ class DelegateDelete(QItemDelegate):
                         self.onButtonDelete(data[index.row()][0])
             return True
 
+
+class BackgroundDelegate(QStyledItemDelegate):
+    def __init__(self, owner):
+        super().__init__(owner)
+        self.owner = owner
+
+    def paint(self, painter, option, index):
+        # Only paint the Quantity column (visible/proxy column index 3)
+        try:
+            if index.column() != 3:
+                super().paint(painter, option, index)
+                return
+
+            # Map proxy index to source model index to read qty and reorder_level reliably
+            proxy = self.owner.proxy
+            source_index = proxy.mapToSource(index)
+            source_model = proxy.sourceModel()
+            if not source_index.isValid():
+                super().paint(painter, option, index)
+                return
+
+            # source model columns: 0=id,1=name,2=sku,3=qty,4=sell_price,5=purchase_price,6=reorder_level
+            qty_idx = source_model.index(source_index.row(), 3)
+            reorder_idx = source_model.index(source_index.row(), 6)
+            qty = qty_idx.data()
+            reorder = reorder_idx.data()
+
+            try:
+                qty_val = int(qty)
+            except Exception:
+                qty_val = 0
+            try:
+                reorder_val = int(reorder) if reorder not in (None, '', b'') else 5
+            except Exception:
+                reorder_val = 5
+
+            if qty_val <= reorder_val:
+                painter.save()
+                painter.fillRect(option.rect, QtGui.QColor(255, 200, 200))
+                painter.restore()
+
+        except Exception:
+            # Fall back to default painting on error
+            pass
+
+        super().paint(painter, option, index)
+
 class StockView(QWidget):
     def __init__(self, parent=None):
         super(StockView, self).__init__(parent)
@@ -324,10 +399,10 @@ class StockView(QWidget):
 
         self.top_box_layout = QHBoxLayout()
 
-        self.add_button = QPushButton("Add +")
+        self.add_button = QPushButton(t("Add +"))
         self.search_box = QLineEdit()
-        self.search_box.setPlaceholderText("SKU");
-        self.search_button = QPushButton("Search")
+        self.search_box.setPlaceholderText(t("SKU"));
+        self.search_button = QPushButton(t("Search"))
         self.search_box.textChanged.connect(self.onSearchChanged)
         self.add_button.clicked.connect(self.onAddDialog)
         #self.hbox.addStretch()
@@ -347,9 +422,9 @@ class StockView(QWidget):
         self.totalPageLabel = QLabel()
         self.currentPageLabel = QLabel()
         self.switchPageLineEdit = QLineEdit()
-        self.prevButton = QPushButton("Prev")
-        self.nextButton = QPushButton("Next")
-        self.switchPageButton = QPushButton("Switch")
+        self.prevButton = QPushButton(t("Prev"))
+        self.nextButton = QPushButton(t("Next"))
+        self.switchPageButton = QPushButton(t("Switch"))
         # Current Page
         self.currentPage = 1
         # PageCount
@@ -373,14 +448,14 @@ class StockView(QWidget):
         hLayout = QHBoxLayout()
         hLayout.addWidget(self.prevButton)
         hLayout.addWidget(self.nextButton)
-        hLayout.addWidget(QLabel("Jump To"))
+        hLayout.addWidget(QLabel(t("Jump To")))
         self.switchPageLineEdit.setFixedWidth(40)
         hLayout.addWidget(self.switchPageLineEdit)
-        hLayout.addWidget(QLabel("page"))
+        hLayout.addWidget(QLabel(t("page")))
         hLayout.addWidget(self.switchPageButton)
-        hLayout.addWidget(QLabel("Current page:"))
+        hLayout.addWidget(QLabel(t("Current page:")))
         hLayout.addWidget(self.currentPageLabel)
-        hLayout.addWidget(QLabel("Total pages:"))
+        hLayout.addWidget(QLabel(t("Total pages:")))
         hLayout.addWidget(self.totalPageLabel)
         hLayout.addStretch(1)
         self.layout.addLayout(hLayout)
@@ -411,7 +486,7 @@ class StockView(QWidget):
             self.db = self.initialize_database()
             
         sql = "SELECT id as 'ID', name as 'Product Name', sku as 'SKU', qty as 'Quantity', " \
-            "sell_price as 'Selling Price', purchase_price as 'Purchase Price' FROM products"
+            "sell_price as 'Selling Price', purchase_price as 'Purchase Price', reorder_level as 'Reorder Level' FROM products"
         self.queryModel.setQuery(sql, self.db)
         
         self.proxy = QtCore.QSortFilterProxyModel()
@@ -425,19 +500,21 @@ class StockView(QWidget):
             self.totalPage = int(self.totalRecordCount / self.pageRecordCount) + 1
         
         sql = "SELECT id as 'ID', name as 'Product Name', sku as 'SKU', qty as 'Quantity', " \
-            "sell_price as 'Selling Price', purchase_price as 'Purchase Price' " \
+            "sell_price as 'Selling Price', purchase_price as 'Purchase Price', reorder_level as 'Reorder Level' " \
             "FROM products limit %d,%d" % (0, self.pageRecordCount)
         self.queryModel.setQuery(sql, self.db)
         
         self.tableView.setModel(self.proxy)
-        data_labels = ["ID", "Product Name", "SKU", "Quantity", "Selling Price", "Purchase Price", "Edit", "Delete"]
+        data_labels = ["ID", "Product Name", "SKU", "Quantity", "Selling Price", "Purchase Price", "Reorder Level", "Edit", "Delete"]
         CustomHeader(self.tableView.horizontalHeader(), data_labels)
-        
+
         self.tableView.model().layoutChanged.emit()
         self.tableView.model().insertColumn(6, QtCore.QModelIndex())
         self.tableView.model().insertColumn(7, QtCore.QModelIndex())
         self.tableView.setItemDelegateForColumn(6, DelegateEdit(self))
         self.tableView.setItemDelegateForColumn(7, DelegateDelete(self))
+        # Set background/highlight delegate for the table (per-column delegates override this)
+        self.tableView.setItemDelegate(BackgroundDelegate(self))
 
     def load_categories(self):
             query = QSqlQuery()
@@ -505,7 +582,7 @@ class StockView(QWidget):
         else:
             self.nextButton.setEnabled(True)
 
-    def closeEvent(self):
+    def closeEvent(self, event):
         if self.db:
             self.db.close()
             QSqlDatabase.removeDatabase(self.db.connectionName())
@@ -520,7 +597,7 @@ class StockView(QWidget):
             self.filters.filters[logical_index] = filtertext
             self.filters.modelReset.emit()
         columncount = int(self.tableView.horizontalHeader().count())
-        self.filters = FilterModel([""] * 6)
+        self.filters = FilterModel([""] * 7)
         self.filters.setSourceModel(self.queryModel)
         self.tableView.setModel(self.filters)
         self.filters.modelReset.emit()
@@ -554,7 +631,12 @@ class StockView(QWidget):
         self.formlayout.addRow(QLabel("Quantity"), self.qty) 
         self.formlayout.addRow(QLabel("Selling"), self.sell) 
         self.formlayout.addRow(QLabel("Purchase"), self.purchase) 
+        # Reorder level (threshold)
+        self.reorder = QLineEdit()
+        self.reorder.setValidator(self.onlyInt)
+        self.reorder.setText("5")
         self.formlayout.addRow(QLabel("Category"), self.category)
+        self.formlayout.addRow(QLabel("Reorder level"), self.reorder)
         self.formGroupBox.setLayout(self.formlayout) 
         self.buttonBox = QDialogButtonBox()
         self.buttonBox.addButton("Add", QDialogButtonBox.AcceptRole)
@@ -588,13 +670,14 @@ class StockView(QWidget):
         else:
             try:
                 query = QSqlQuery()
-                query.prepare("INSERT INTO products (id,name,sku,qty,sell_price,purchase_price, category_id) "
-                              "VALUES (NULL, :name, :sku, :qty, :sell_price, :purchase_price, :category_id)")
+                query.prepare("INSERT INTO products (id,name,sku,qty,sell_price,purchase_price, reorder_level, category_id) "
+                              "VALUES (NULL, :name, :sku, :qty, :sell_price, :purchase_price, :reorder_level, :category_id)")
                 query.bindValue(":name", name)
                 query.bindValue(":sku", sku)
                 query.bindValue(":qty", qty)
                 query.bindValue(":sell_price", sell)
                 query.bindValue(":purchase_price", purchase)
+                query.bindValue(":reorder_level", self.reorder.text().strip() or "5")
                 query.bindValue(":category_id", category_id)
                 query.exec_()
                 self.name.clear()
@@ -602,7 +685,29 @@ class StockView(QWidget):
                 self.qty.clear()
                 self.sell.clear()
                 self.purchase.clear()
-                QMessageBox.question(self, "Success","Product has been added successfully!",QMessageBox.Ok)
+                # Ask the user whether to print SKU sticker
+                reply = QMessageBox.question(self, t("Print Label"), t("Do you want to print SKU sticker for this product?"),
+                                             QMessageBox.Yes | QMessageBox.No)
+                if reply == QMessageBox.Yes:
+                    try:
+                        printer = QPrinter()
+                        dialog = QPrintDialog(printer, self)
+                        if dialog.exec_() == QPrintDialog.Accepted:
+                            doc = QTextDocument()
+                            html = f"<html><body style='font-family: Arial;'><div style='text-align:center; font-size:48pt; font-weight:bold;'>{sku}</div></body></html>"
+                            doc.setHtml(html)
+                            doc.print_(printer)
+                            QMessageBox.information(self, t("Success"), t("Label printed."))
+                        else:
+                            QMessageBox.information(self, t("Cancelled"), t("Printing cancelled."))
+                    except Exception as e:
+                        print('Label print failed:', e)
+                        QMessageBox.information(self, t("Error"), t("Label printing failed. Check printer settings."))
+                else:
+                    # User chose not to print
+                    pass
+
+                QMessageBox.information(self, t("Success"), t("Product has been added successfully!"))
                 self.initializedModel()
                 self.dialog.close()
             except Exception as e:
@@ -623,8 +728,8 @@ class StockView(QWidget):
             parent = self.sender()
             globalPos = parent.mapToGlobal(pos)
             menu = QMenu()
-            editAction = menu.addAction("Edit")
-            deleteAction = menu.addAction("Delete")
+            editAction = menu.addAction(t("Edit"))
+            deleteAction = menu.addAction(t("Delete"))
             
             action = menu.exec_(globalPos)
             if action == editAction:

@@ -5,6 +5,7 @@ from PyQt5.QtSql import QSqlDatabase, QSqlQuery, QSqlQueryModel
 import json
 from datetime import datetime, timedelta
 from Application.Components.Reports.PaymentDetails import PaymentDetails
+from Application.i18n import format_sum
 
 class ReportsView(QWidget):
     def __init__(self, parent=None):
@@ -266,7 +267,7 @@ class ReportsView(QWidget):
     def update_pagination_status(self):
         self.currentPageLabel.setText(str(self.currentPage))
         self.totalPageLabel.setText(str(self.totalPage))
-        self.totalAmountLabel.setText(f"${self.totalAmount:.2f}")
+        self.totalAmountLabel.setText(format_sum(self.totalAmount))
         
         self.prevButton.setEnabled(self.currentPage > 1)
         self.nextButton.setEnabled(self.currentPage < self.totalPage)

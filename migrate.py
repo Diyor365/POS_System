@@ -34,6 +34,7 @@ class DatabaseMigration:
                     qty INTEGER NOT NULL DEFAULT 0,
                     sell_price DECIMAL(10,2) NOT NULL,
                     purchase_price DECIMAL(10,2) NOT NULL,
+                    reorder_level INTEGER NOT NULL DEFAULT 5,
                     category_id INTEGER,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -84,10 +85,16 @@ class DatabaseMigration:
                 END;
             ''')
             
-            # Insert default categories
+            # Insert default categories (Uzbek names requested by user)
             default_categories = [
-                'Bakery', 'Beverages', 'Stationery', 'Electronics',
-                'Health_Beauty', 'Household', 'Stationery', 'Toys', 'Grocery'
+                "Asbob anjomlar",
+                "Elektron jihozlar",
+                "Oshxona anjomlari",
+                "Mexnat qurollari",
+                "Santexnika vositali",
+                "qurilish mollari",
+                "Bog'dala anjomlar",
+                "Maxsus anjomlar"
             ]
             
             for category in default_categories:
@@ -95,16 +102,17 @@ class DatabaseMigration:
             
             # Insert sample products
             sample_products = [
-                ('Lifebuoy(100g)', '54745', 10, 53.00, 50.00, 'Health_Beauty'),
-                ('Signal(70g)', '98765', 15, 80.00, 100.00, 'Health_Beauty'),
-                ('Anchor(400g)', '09654', 10, 120.00, 550.00, 'Household'),
-                ('Vim(500ml)', '47484', 12, 215.00, 210.00, 'Household'),
-                ('Viva(400g)', '93848', 18, 332.00, 330.00, 'Household'),
-                ('Marmite(210g)', '36372', 5, 573.00, 570.00, 'Household'),
-                ('Laojee(400)', '09837', 17, 376.00, 374.00, 'Beverages'),
-                ('Samba rice', '12653', 22, 100.00, 97.00, 'Household'),
-                ('Watawala Tea(100g)', '44560', 25, 122.00, 120.00, 'Beverages'),
-                ('Maliban marie(330g)', '11232', 22, 147.00, 144.00, 'Bakery')
+                # mapped to new categories (fallback to kitchen/oshxona or special tools)
+                ('Lifebuoy(100g)', '54745', 10, 53.00, 50.00, "Maxsus anjomlar"),
+                ('Signal(70g)', '98765', 15, 80.00, 100.00, "Maxsus anjomlar"),
+                ('Anchor(400g)', '09654', 10, 120.00, 550.00, "Oshxona anjomlari"),
+                ('Vim(500ml)', '47484', 12, 215.00, 210.00, "Oshxona anjomlari"),
+                ('Viva(400g)', '93848', 18, 332.00, 330.00, "Oshxona anjomlari"),
+                ('Marmite(210g)', '36372', 5, 573.00, 570.00, "Oshxona anjomlari"),
+                ('Laojee(400)', '09837', 17, 376.00, 374.00, "Oshxona anjomlari"),
+                ('Samba rice', '12653', 22, 100.00, 97.00, "Oshxona anjomlari"),
+                ('Watawala Tea(100g)', '44560', 25, 122.00, 120.00, "Oshxona anjomlari"),
+                ('Maliban marie(330g)', '11232', 22, 147.00, 144.00, "Oshxona anjomlari")
             ]
             
             for product in sample_products:
